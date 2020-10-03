@@ -26,7 +26,7 @@ def endpoint(path=""):
 def link(path=""):
 	return base_endpoint + path
 
-
+G
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(gate_pin, GPIO.OUT)
 
@@ -64,7 +64,7 @@ def open_view():
 
 @app.route(endpoint("/image<ts>.jpg"))
 def image(ts):
-	return send_file("fruits.png", mimetype='image/png')
+	return send_file("static/fruits.png", mimetype='image/png')
 
 
 @app.route(endpoint("/open"))
