@@ -1,0 +1,9 @@
+verbosity=1
+console=both
+disp_mode=720p60
+camera_type=none
+pine64_lcd=on
+overlay_prefix=sun50i-a64
+rootdev=UUID=9a93fb9e-7ce5-4c48-bcf4-08de5000ee87
+rootfstype=ext4
+usbstoragequirks=0x2537:0x1066:u,0x2537:0x1068:u
