@@ -1,4 +1,4 @@
-
+# TODO: migrate to FastAPI
 from flask import Flask, send_file, redirect
 import RPi.GPIO as GPIO
 import datetime
@@ -8,7 +8,9 @@ import subprocess
 
 # TODO: Put in config
 listen_port = 10000
-gate_pin = 7
+open_door_pin = 11  # Physical 11 -> BCM 17
+doorbell_pin = 36   # Physical 7  -> BCM 16
+
 signal_duration = 0.6
 repetitions = 3
 scheme = 'https'
@@ -26,9 +28,9 @@ def endpoint(path=""):
 def link(path=""):
 	return base_endpoint + path
 
-G
+
 GPIO.setmode(GPIO.BOARD)
-GPIO.setup(gate_pin, GPIO.OUT)
+GPIO.setup(open_door_pin, GPIO.OUT)
 
 app = Flask(__name__)
 
@@ -72,15 +74,15 @@ def open_gate():
 	status = "%s : Entry " % datetime.datetime.now()
 	try:
 		GPIO.setmode(GPIO.BOARD)
-		GPIO.setup(gate_pin, GPIO.OUT)
+		GPIO.setup(open_door_pin, GPIO.OUT)
 	except Exception as ex:
 		status += "(GPIO failure: %s) " % ex
 
 	try:
 		for x in range(repetitions):
-			GPIO.output(gate_pin,True)
+			GPIO.output(open_door_pin, True)
 			time.sleep(signal_duration)
-			GPIO.output(gate_pin,False)
+			GPIO.output(open_door_pin, False)
 			time.sleep(signal_duration)
 		status += "OK "
 	except Exception as ex:
