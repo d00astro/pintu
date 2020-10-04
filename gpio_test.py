@@ -3,11 +3,11 @@ from sys import exit
 from signal import SIGINT, signal, pause
 from time import sleep
 
-open_door_pin = 11  # Physical 11 -> BCM 17
-doorbell_pin = 36   # Physical 7  -> BCM 16
+open_door_pin = 13  # Physical 13 -> BCM 27
+doorbell_pin = 11   # Physical 11  -> BCM 17
 
-signal_duration = 0.6
-repetitions = 3
+signal_duration = 0.3
+repetitions = 1
 
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(open_door_pin, GPIO.OUT)
@@ -30,6 +30,7 @@ def open_door():
 def doorbell_pressed_callback(channel):
     print("Ding Dong!")
     open_door()
+    print("")
 
 
 def signal_handler(sig, frame):
@@ -39,7 +40,7 @@ def signal_handler(sig, frame):
 
 GPIO.add_event_detect(
     doorbell_pin,
-    GPIO.BOTH,
+    GPIO.RISING,
     callback=doorbell_pressed_callback,
     bouncetime=2000
     )
