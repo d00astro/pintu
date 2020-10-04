@@ -1,97 +1,88 @@
 # TODO: migrate to FastAPI
-from flask import Flask, send_file, redirect
-import RPi.GPIO as GPIO
+from fastapi import FastAPI, Request
+from starlette.responses import RedirectResponse, FileResponse, HTMLResponse
+from config import  get_settings
+from uvicorn import run
 import datetime
 import time
 import subprocess
+import peripherals_io
 
 
-# TODO: Put in config
-listen_port = 10000
-open_door_pin = 11  # Physical 11 -> BCM 17
-doorbell_pin = 36   # Physical 7  -> BCM 16
+config = get_settings()
+log = config.log
 
-signal_duration = 0.6
-repetitions = 3
-scheme = 'https'
-net_location = 'astrom.sg'
-prefix = '/home/door'
-base_endpoint = "%s://%s%s" % (scheme, net_location, prefix)
+def create_api() -> FastAPI:
+	fast_api = FastAPI(
+		title="Pintu API",
+		description="""By [Anders Astrom](https://github.com/d00astro)
 
-log = []
-
-
-def endpoint(path=""):
-	return prefix + path
-
-
-def link(path=""):
-	return base_endpoint + path
+A basic API for "smart door" control
+""",
+		version=config.version,
+		openapi_tags=[
+			{"name": "status", "description": "Status functions"},
+		],
+#		root_path=config.route_prefix
+	)
+	return fast_api
 
 
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(open_door_pin, GPIO.OUT)
-
-app = Flask(__name__)
+api = create_api()
 
 
-@app.route(endpoint("/reboot"))
+@api.post("/reboot")
 def reboot():
 	subprocess.call(["reboot", "now"])
 
 
-@app.route(endpoint())
-def gate():
+@api.get("/view")
+def gate(*, request: Request):
 	timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-	open_url = link("open_view")
-	refresh_url = link()
-	image_url = link("image_%s.jpg" % timestamp)
-	return """
+	open_url = f"{request.url}/open"
+	refresh_url = request.url
+	image_url = f"{request.url}/image_{timestamp}.jpg"
+	return HTMLResponse(f"""
 <html>
 	<body bgcolor="#000000" text="#FFFFFF">
-		<h1>[ <a href='%s'>Open</a> ]</h1><br/>
-		<a href='%s'>
-			<img src='%s' alt='Open Gate'>
+		<h1>[ <a href='{open_url}'>Open</a> ]</h1><br/>
+		<a href='{refresh_url}'>
+			<img src='{image_url}' alt='Open Gate'>
 		</a>
 	</body>
 </html>
-""" % (open_url, refresh_url, image_url)
+""")
 
 
-@app.route(endpoint("open_view"))
+@api.get("/view/open")
 def open_view():
-	open_gate()
-	return redirect(link(), code=302)
+	peripherals_io.open_door()
+	return RedirectResponse(url="/view")
 
 
-@app.route(endpoint("/image<ts>.jpg"))
-def image(ts):
-	return send_file("static/fruits.png", mimetype='image/png')
+@api.get("/view/image_{timestamp}.jpg")
+def image(timestamp: str):
+	log.info(f"Requesting image:{timestamp}")
+	return FileResponse("static/fruits.png", media_type='image/png')
 
 
-@app.route(endpoint("/open"))
+@api.post("/open")
 def open_gate():
-	status = "%s : Entry " % datetime.datetime.now()
-	try:
-		GPIO.setmode(GPIO.BOARD)
-		GPIO.setup(open_door_pin, GPIO.OUT)
-	except Exception as ex:
-		status += "(GPIO failure: %s) " % ex
-
-	try:
-		for x in range(repetitions):
-			GPIO.output(open_door_pin, True)
-			time.sleep(signal_duration)
-			GPIO.output(open_door_pin, False)
-			time.sleep(signal_duration)
-		status += "OK "
-	except Exception as ex:
-		status += "(Signal failure: %s) " % ex
-
-	log.append(status)
-
-	return 'Door Open!' + '<br/><br/>' + '<br/>'.join(log[::-1])
+	peripherals_io.open_door()
 
 
-if __name__ == '__main__':
-	app.run(debug=True, host="0.0.0.0", port=listen_port)
+@api.on_event("startup")
+async def startup_event():
+	config.log.info("Starting up...")
+	peripherals_io.initialize()
+
+
+@api.on_event("shutdown")
+async def shutdown_event():
+	config.log.info("Shutting down...")
+	peripherals_io.graceful_shutdown()
+
+
+# For simplified debug purposes only
+if __name__ == "__main__":
+	run(api, host="0.0.0.0", port=config.listen_port)

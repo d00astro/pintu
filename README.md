@@ -14,7 +14,8 @@ You need at least two of the following for this project to make sense:
 Potential future stuff:
 - A sensor to check if the door is open or closed
 - A sensor to check if the door is unlocked or locked
-
+- A Presence / IR sensor
+- A light control
 
 You also need: 
 #### Python 3.7+
