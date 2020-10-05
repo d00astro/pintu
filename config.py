@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     scheme: str = os.getenv("SCHEME", "https")
     net_location: str = os.getenv("NET_LOCATION", 'astrom.sg')
     route_prefix: str = os.getenv("ROUTE_PREFIX", "/home/door")
+    doorbell_url: str = os.getenv(
+        "DOORBELL_URL",
+        "http://vanaheim.astro:8000/cast/assistants/say/?text=dingdong%2C%20dingdong%21%20There%20is%20someone%20at%20the%20door"
+    )
 
     @property
     def base_endpoint(self):

@@ -2,6 +2,8 @@ import RPi.GPIO as GPIO
 from signal import SIGINT, signal, pause
 from time import sleep
 from config import get_settings
+import requests
+
 
 config = get_settings()
 
@@ -52,6 +54,7 @@ def doorbell_pressed_callback(channel):
     try:
         config.log.info("Ding Dong! Someone pressed the door-bell")
         #TODO: webhooks go here
+        requests.get(config.doorbell_url)
         config.log.info("Doorbell handler completed")
     except Exception as ex:
         config.log.error(f"Something bad happened when handling doorbell: {ex}")
