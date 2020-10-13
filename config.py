@@ -1,11 +1,11 @@
 import logging
 import os
 from functools import lru_cache
-
+from datetime import datetime
+x
 from pydantic import AnyUrl, BaseSettings
 
-logger_name = "uvicorn"
-log = logging.getLogger(logger_name)
+
 
 
 class Settings(BaseSettings):
@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     open_door_signal_duration: float = os.getenv("OPEN_SIGNAL_DURATION", 0.3)
     open_door_signal_repititions: int = os.getenv("OPEN_SIGNAL_REPETITIONS", 1)
     scheme: str = os.getenv("SCHEME", "https")
+    logdir: str = os.getenv("PINTU_LOG_DIR", "/home/pi/pintu/logs")
     net_location: str = os.getenv("NET_LOCATION", 'astrom.sg')
     route_prefix: str = os.getenv("ROUTE_PREFIX", "/home/door")
     doorbell_url: str = os.getenv(
@@ -46,3 +47,18 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     log.info("Loading config settings from the environment...")
     return Settings()
+
+
+current_time = datetime.utcnow()
+date_str = current_time.strftime('%y%m%d')
+config = get_settings()
+log_file = os.path.join(config.logdir, f"{date_str}_pintu.log")
+logging.basicConfig(
+    filename=log_file,
+    filemode='a',
+    format='%(asctime)s,%(msecs)d %(name)s %(levelname)s %(message)s',
+    datefmt='%H:%M:%S',
+    level=logging.DEBUG
+)
+logger_name = "uvicorn"
+log = logging.getLogger(logger_name)
