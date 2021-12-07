@@ -1,11 +1,15 @@
+*.log*
+config/pintu.conf
+
 # ModelFiles
 *.caffemodel
 *ckpt-[0-9]*.data*
 saved_model.pb
 **/cv/models/*
 
-# Pycharm
+# IDEs
 .idea/**
+.vscode/**
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -111,6 +115,8 @@ celerybeat.pid
 *.sage.py
 
 # Environments
+env2.*/
+env3.*/
 .env
 .venv
 env/

@@ -4,6 +4,15 @@ Pintu: Bahasa (Indonesian, Malay) for 'Door'
 Pintu is a "smart doorbell" with video capabilities, remote control and Chromecast integration, for Raspberry Pi.
 
 ## Prerequisites
+### OpenCV:
+Install as per:
+https://qengineering.eu/install-opencv-4.4-on-raspberry-64-os.html
+
+### Ncnn 
+Install as per:
+https://qengineering.eu/install-ncnn-on-raspberry-pi-4.html
+
+
 You need at least two of the following for this project to make sense:
 - A physical door, gate, barrier or similar
 - A doorbell or button, for guests to request access, properly hooked up one of the Raspberry Pi input pins. Wiring examples to come.

@@ -1,0 +1,20 @@
+# # Packages only needed for Dev / Test / Quality Assurance
+black
+codecov
+flake8
+isort
+mypy
+pytest
+pytest-benchmark
+pytest-cov
+pytest-datafiles
+pytest-timeout
+setuptools>=46.4.0
+tk
+types-requests
+types-redis
+
+Rpi.GPIO @ git+https://github.com/nosix/raspberry-gpio-emulator/ 
+
+-e .
+

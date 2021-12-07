@@ -1,0 +1,12 @@
+# Requirements for building the Documentation
+readthedocs-sphinx-search
+sphinx
+sphinx-rtd-theme
+Pygments
+sphinx-tabs
+sphinx-autodoc-napoleon-typehints
+docutils==0.16.0
+sphinx-autobuild
+doc8
+rstcheck
+packaging

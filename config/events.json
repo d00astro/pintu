@@ -1,0 +1,36 @@
+{
+    "sensor": {
+        "doorbell": {
+            "record": {
+                "pre": 5,
+                "post": 15
+            },
+            "webhooks": [],
+            "pins": [],
+            "scripts": []
+        },
+        "lock": {
+            "record": null,
+            "webhooks": [],
+            "pins": [],
+            "scripts": []
+        },
+        "door": {
+            "record": {
+                "pre": 5,
+                "post": 5
+            },
+            "webhooks": [],
+            "pins": [],
+            "scripts": []
+        }
+    },
+    "detection": {
+        "person": {
+            "record": null,
+            "webhooks": [],
+            "pins": [],
+            "scripts": []
+        }
+    }
+}
