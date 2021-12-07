@@ -454,8 +454,6 @@ def analyze_stream(
 if __name__ == "__main__":
     import pathlib
 
-    import redis
-
     import pintu
     import pintu.detection
 

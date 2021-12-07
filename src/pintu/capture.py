@@ -195,8 +195,6 @@ def capture(
 
 
 if __name__ == "__main__":
-    import redis
-
     import pintu
 
     bus = redis.Redis(

@@ -1,0 +1,51 @@
+{
+    "event": {
+        "sensor": {
+            "doorbell": [
+                {
+                    "state": true,
+                    "door_state": false,
+                    "actions": [
+                        "ACTION_NAME"
+                    ]
+                }
+            ],
+            "lock": [
+                {
+                    "state": true,
+                    "actions": [
+                        "ACTION_NAME"
+                    ]
+                }
+            ],
+            "door": [
+                {
+                    "state": true,
+                    "actions": [
+                        "ACTION_NAME"
+                    ]
+                }
+            ]
+        },
+        "detection": [
+            {
+                "bigger_than": 0.037,
+                "min_conf": 0.77,
+                "actions": [
+                    "ACTION_NAME"
+                ]
+            }
+        ]
+    },
+    "action": {
+        "ACTION_NAME": {
+            "record": {
+                "pre": 5,
+                "post": 15
+            },
+            "webhooks": [],
+            "pins": [],
+            "scripts": []
+        }
+    }
+}

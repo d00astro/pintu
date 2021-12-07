@@ -451,7 +451,7 @@ def sample_stream(
     default_type: Constructor = id_fun,
     timeout: datetime.timedelta = None,
     sleep: datetime.timedelta = datetime.timedelta(seconds=0.05),
-) -> Iterable[Dict]:
+) -> Iterable[Dict[str, Any]]:
     last_processed_id = b"0-0"
     last_fetched_time = now()
 
@@ -484,3 +484,82 @@ def sample_stream(
 
         last_processed_id = id
         last_fetched_time = now()
+
+
+def slice_stream(
+    bus: redis.Redis,
+    stream_key: str,
+    start_time: datetime.datetime = UTC_DATETIME_MIN,
+    end_time: datetime.datetime = UTC_DATETIME_MAX,
+    types: Dict[str, Constructor] = None,
+    default_type: Constructor = id_fun,
+    sleep: datetime.timedelta = datetime.timedelta(seconds=0.05),
+) -> Iterable[Dict[str, Any]]:
+    """
+    Iterate through a time-slice of a stream.
+    Both start and end times can be either in the past* or the future.
+
+    * As long as it the stream has not been purged or expired.
+
+    This call only exits once a record with timestamp / id greater than the
+    `end_time` is added to the stream.
+
+    :param bus:
+        Redis connection to read from.
+
+    :param stream_key:
+        Key of the stream to use.
+
+    :param start_time: (optional)
+        Start time of the slice / timestamp of the record to start from.
+        Defaults to the earliest record in the stream.
+
+    :param end_time: (optional)
+        End time of the slice / timestamp of last record read.
+        Defaults to indefinite.
+
+    :param types: (optional)
+        Dictionary of field names to types/constructors to apply to the values
+        of the stream.
+        Defaults to None.
+
+    :param default_type: (optional)
+        Apply this type/constructor to values, if not in the `types` dict.
+        Defaults to None.
+
+    :param sleep: (optional)
+        Interval to wait, before reading the next record,
+        if there is nothing new in the stream.
+        Defaults to datetime.timedelta(seconds=0.05).
+
+    :yield:
+        One dict per record, containing the fields and values
+        (potentially transformmed) of the record.
+    """
+    start_id = stream_id(start_time)
+    end_id = stream_id(end_time)
+
+    if not types:
+        types = {}
+
+    if default_type:
+        types = collections.defaultdict(lambda: default_type, types)
+
+    while start_id < end_id:
+        # Get the latest decoded image
+        records = bus.xrange(stream_key, min=start_id)
+
+        # Take a nap if no or only one record was returned
+        # one record
+        if len(records) <= 1:
+            time.sleep(sleep.total_seconds())
+            continue
+
+        for id, record in records[1:]:
+            start_id = safe_str(id)
+            if start_id > end_id:
+                break
+
+            yield {
+                safe_str(k): types[safe_str(k)](v) for k, v in record.items()
+            }

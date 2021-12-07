@@ -44,18 +44,18 @@ CONFIG_FILES = [
 """Configuration files to read."""
 LOG_CONFIG_FILE = CONF_DIR / "logging.conf"
 """Logging configuration file."""
-EVENTS_FILE = CONF_DIR / "events.json"  # Not used (yet)
+EVENTS_FILE = CONF_DIR / "events.json"  # Not used (yet)s
 """Events handling configuration file"""
-RECORDINGS_DIR = INSTALL_DIR / "recordings"  # Not used (yet)
-"""Recordings directory"""
 COMPACT_TIMESTAMP_FORMAT = "%Y%m%dT%H%M%S%f"
 """Compact filename-friendly datetime format (ISO 8601 based)."""
 COMPACT_TIMESTAMP_REGEXP = re.compile(r"\d{8}T\d{12}")
 """Regular expression for compact filename-friendly datetime format."""
-
+RECORDINGS_DIR = INSTALL_DIR / "recordings"  # Not used (yet)
+"""Recordings directory"""
+RECORDINGS_VIDEO_CLIP_PATH = COMPACT_TIMESTAMP_FORMAT + ".mp4"
+"""Path of recorded clips within the recordings directory."""
 STREAM_ID_TIMESTAMP_FORMAT = "%Y%m%d%H%M%S-%f"
 """Format of stream id timestamps"""
-
 
 # Redis
 REDIS_HOST = "localhost"
