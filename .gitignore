@@ -1,6 +1,7 @@
 *.log*
 config/pintu.conf
 sandbox
+recordings
 
 # ModelFiles
 *.caffemodel

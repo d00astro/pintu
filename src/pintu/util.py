@@ -287,6 +287,9 @@ def str_float(val: float, dec=4) -> str:
 
 
 def safe_str(value: Any) -> str:
+    if value is None:
+        return ""
+
     if isinstance(value, str):
         return value
 
