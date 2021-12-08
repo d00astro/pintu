@@ -146,7 +146,7 @@ def _record_on_demand_loop(
         recording_file.parent.mkdir(parents=True, exist_ok=True)
         video_writer = None
 
-        if end_timestamp > last_recorded_frame_timestamp:
+        if start_timestamp > last_recorded_frame_timestamp:
             log.info(
                 f"Recording camera '{camera_name}' from {start_timestamp.isoformat()} "
                 f"to file '{recording_file}'"
