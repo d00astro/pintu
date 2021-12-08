@@ -26,6 +26,8 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
  OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 import asyncio
+import datetime
+import functools
 import logging
 
 import fastapi
@@ -35,9 +37,17 @@ import uvicorn
 import pintu
 import pintu.gpio
 import pintu.imaging
+import pintu.record
 import pintu.util
 
 log = logging.getLogger(__name__)
+
+
+@functools.lru_cache
+def redis_connection():
+    return redis.Redis(
+        host=pintu.config.redis_host, port=pintu.config.redis_port
+    )
 
 
 def create_api() -> fastapi.applications.FastAPI:
@@ -247,7 +257,10 @@ async def do_close_door():
 
 
 def image_stream(
-    stream_key: str, image_kind: str = "input", detections: bool = False
+    bus: redis.Redis,
+    stream_key: str,
+    image_kind: str = "input",
+    detections: bool = False,
 ):
     """Generate a real-time MJPEG stream of frames from a capture or detection
     stream in Redis.
@@ -266,9 +279,7 @@ def image_stream(
     :yield:
         MJPEG stream of real-time frames.
     """
-    bus = redis.Redis(
-        host=pintu.config.redis_host, port=pintu.config.redis_port
-    )
+
     for record in pintu.util.sample_stream(bus, stream_key):
         image_bytes = bus.get(record[image_kind])
         if not image_bytes:
@@ -306,7 +317,11 @@ def image_stream(
 
 
 @api.get("/live")
-async def live_video(detections: bool = False, image="input"):
+async def live_video(
+    detections: bool = False,
+    image="input",
+    bus: redis.Redis = fastapi.Depends(redis_connection),
+):
     """MJPEG stream
 
     :param detections: (optional)
@@ -329,31 +344,57 @@ async def live_video(detections: bool = False, image="input"):
     )
 
     return fastapi.responses.StreamingResponse(
-        image_stream(stream_key, image, detections),
+        image_stream(bus, stream_key, image, detections),
         media_type="multipart/x-mixed-replace; boundary=frame",
     )
 
 
-# video_path = pathlib.Path("recordings/2021/1205/2327/door_00.mp4")
-# CHUNK_SIZE = 1024 * 1024
+@api.get("/recordings")
+async def get_recordings(
+    begin: datetime.datetime = None,
+    end=None,
+    bus: redis.Redis = fastapi.Depends(redis_connection),
+):
+    log.info("Recordings listing requested.")
+    return pintu.record.get_recordings(
+        bus, pintu.config.camera_name, begin, end
+    )
 
 
-# @api.get("/recording")
-# async def recorded_video(range: str = fastapi.Header(None)):
-#     start_str, end_str = range.replace("bytes=", "").split("-")
-#     start = int(start_str)
-#     end = int(end_str) if end_str else start + CHUNK_SIZE
-#     with open(video_path, "rb") as video:
-#         video.seek(start)
-#         data = video.read(end - start)
-#         filesize = str(video_path.stat().st_size)
-#         headers = {
-#             "Content-Range": f"bytes {str(start)}-{str(end)}/{filesize}",
-#             "Accept-Ranges": "bytes",
-#         }
-#         return fastapi.Response(
-#             data, status_code=206, headers=headers, media_type="video/mp4"
-#         )
+CHUNK_SIZE = 1024 * 1024
+
+
+@api.get("/recordings/{video_id}")
+async def recorded_video(video_id: str, range: str = fastapi.Header(None)):
+    log.info(f"Recorded video requested : '{video_id}'")
+
+    video_path = pintu.config.recordings_dir / video_id
+    if not video_path.is_file():
+        log.error(f"No such file: '{video_path}'")
+        raise FileNotFoundError(video_id)
+    if range:
+        start_str, end_str = range.replace("bytes=", "").split("-")
+        start = int(start_str)
+        end = int(end_str) if end_str else start + CHUNK_SIZE
+    else:
+        start = 0
+        end = video_path.stat().st_size
+
+    with video_path.open("rb") as video:
+        video.seek(start)
+        data = video.read(end - start)
+        filesize = str(video_path.stat().st_size)
+        headers = {
+            "Content-Range": f"bytes {str(start)}-{str(end)}/{filesize}",
+            "Accept-Ranges": "bytes",
+        }
+        return fastapi.Response(
+            data,
+            status_code=206,
+            headers=headers,
+            # media_type="video/mp4",
+            media_type="video/webm",
+        )
 
 
 # List Historic Events

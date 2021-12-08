@@ -27,6 +27,8 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 """
 import datetime
 import logging
+import pathlib
+from typing import Any, Dict, List
 
 import cv2
 import redis
@@ -49,6 +51,45 @@ def record(
 
     bus.set(end_time_key, end_time.isoformat())
     bus.rpush(start_time_key, start_time.isoformat())
+
+
+def get_recordings(
+    bus: redis.Redis,
+    camera_name: str,
+    start_time: datetime.datetime = None,
+    end_time: datetime.datetime = None,
+) -> List[Dict[str, Any]]:
+    recordings_stream_key = f"/pintu/camera/{camera_name}/recording"
+
+    if end_time is None:
+        end_time = pintu.util.now()
+
+    if start_time is None:
+        start_time = end_time - datetime.timedelta(days=1)
+
+    recordings: List[Dict[str, Any]] = []
+
+    for recording in pintu.util.slice_stream(
+        bus,
+        recordings_stream_key,
+        start_time=start_time,
+        end_time=end_time,
+        types={
+            "finished": pintu.util.safe_bool,
+            "start": pintu.util.parse_timestamp,
+            "end": pintu.util.parse_timestamp,
+            "file": lambda x: pathlib.Path(pintu.util.safe_str(x)),
+        },
+        default_type=pintu.util.safe_str,
+        wait=None,
+    ):
+
+        if not recordings or not recording["finished"]:
+            recordings.append(recording)
+        else:
+            recordings[-1] = recording
+
+    return recordings
 
 
 def _record_on_demand_loop(
@@ -114,7 +155,7 @@ def _record_on_demand_loop(
                 recordings_stream_key,
                 fields={
                     "camera": camera_name,
-                    "rec_state": 1,
+                    "finished": 0,
                     "start": start_timestamp.isoformat(),
                     "end": end_timestamp.isoformat(),
                     "file": str(recording_file),
@@ -149,7 +190,7 @@ def _record_on_demand_loop(
                 if not video_writer:
                     video_writer = cv2.VideoWriter(
                         str(recording_file),
-                        cv2.VideoWriter_fourcc(*"MP4V"),
+                        cv2.VideoWriter_fourcc(*"VP80"),
                         pintu.config.sample_rate,
                         (frame.width, frame.height),
                     )
@@ -187,7 +228,7 @@ def _record_on_demand_loop(
                 recordings_stream_key,
                 fields={
                     "camera": camera_name,
-                    "rec_state": 0,
+                    "finished": 1,
                     "start": start_timestamp.isoformat(),
                     "end": last_recorded_frame_timestamp.isoformat(),
                     "file": str(recording_file),

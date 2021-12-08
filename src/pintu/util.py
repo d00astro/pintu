@@ -27,6 +27,7 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 """
 import collections
 import datetime
+import logging
 import os
 import pathlib
 import statistics
@@ -52,6 +53,7 @@ import ulid
 
 import pintu.default
 
+# This is just to allow Ellipsis in type hints
 if typing.TYPE_CHECKING:
     import enum
 
@@ -62,6 +64,7 @@ if typing.TYPE_CHECKING:
 else:
     ellipsis = type(Ellipsis)
 
+log = logging.getLogger(__name__)
 
 RedisTypes = Union[str, bytes, int, float]
 RedisKeyTypes = Union[str, bytes]
@@ -219,7 +222,7 @@ def parse_timestamp(timestamp: Any) -> datetime.datetime:
     :return:
         Datetime object
     """
-    timestamp_str = str(timestamp)
+    timestamp_str = safe_str(timestamp)
     try:
         return datetime.datetime.fromisoformat(timestamp_str)
     except ValueError:
@@ -284,6 +287,29 @@ def str_float(val: float, dec=4) -> str:
     if ret.startswith("-0."):
         return "-" + ret[2:]
     return ret
+
+
+def safe_bool(value: Any) -> bool:
+    """Parse a bool
+
+    More accepting than defaults, allowing for literal ``"True"``/``"False"``,
+    integer 0 or1, as well as ``"Ok"`` and ``"yes"``/``"no"`` values.
+
+    :param value:
+        Any input value
+
+    :return:
+        Parsed boolean
+    """
+    if isinstance(value, (bytes, str)):
+        return any(
+            [
+                safe_str(value[:4]).upper().startswith(true_val)
+                for true_val in ["TRUE", "OK", "1", "Y", "YES"]
+            ]
+        )
+
+    return bool(input)
 
 
 def safe_str(value: Any) -> str:
@@ -428,7 +454,7 @@ def annotation_dir(
 def stream_id(
     timestamp: datetime.datetime,
     naive_tz: Union[datetime.timezone, ellipsis] = None,
-):
+) -> str:
     if timestamp.tzinfo is None:
         if naive_tz is None:
             raise ValueError(
@@ -447,13 +473,22 @@ def stream_id(
     return timestamp.strftime(pintu.default.STREAM_ID_TIMESTAMP_FORMAT)
 
 
+def tick_stream_id(id: Union[datetime.datetime, str, bytes]) -> str:
+    if isinstance(id, datetime.datetime):
+        id = stream_id(id)
+
+    id_str = safe_str(id)
+    id_l, id_r = id_str.split("-")
+    return f"{id_l}-{int(id_r)+1}"
+
+
 def sample_stream(
     bus: redis.Redis,
     stream_key: str,
     types: Dict[str, Constructor] = None,
     default_type: Constructor = id_fun,
     timeout: datetime.timedelta = None,
-    sleep: datetime.timedelta = datetime.timedelta(seconds=0.05),
+    wait: datetime.timedelta = datetime.timedelta(seconds=0.05),
 ) -> Iterable[Dict[str, Any]]:
     last_processed_id = b"0-0"
     last_fetched_time = now()
@@ -472,7 +507,7 @@ def sample_stream(
         if not records:
             if timeout and now() - last_fetched_time > timeout:
                 break
-            time.sleep(sleep.total_seconds())
+            time.sleep(wait.total_seconds())
             continue
 
         # Take a nap if we got the last read record again.
@@ -480,7 +515,7 @@ def sample_stream(
         if id == last_processed_id:
             if timeout and now() - last_fetched_time > timeout:
                 break
-            time.sleep(sleep.total_seconds())
+            time.sleep(wait.total_seconds())
             continue
 
         yield {safe_str(k): types[safe_str(k)](v) for k, v in record.items()}
@@ -496,7 +531,7 @@ def slice_stream(
     end_time: datetime.datetime = UTC_DATETIME_MAX,
     types: Dict[str, Constructor] = None,
     default_type: Constructor = id_fun,
-    sleep: datetime.timedelta = datetime.timedelta(seconds=0.05),
+    wait: Optional[datetime.timedelta] = datetime.timedelta(seconds=0.05),
 ) -> Iterable[Dict[str, Any]]:
     """
     Iterate through a time-slice of a stream.
@@ -530,9 +565,10 @@ def slice_stream(
         Apply this type/constructor to values, if not in the `types` dict.
         Defaults to None.
 
-    :param sleep: (optional)
+    :param wait: (optional)
         Interval to wait, before reading the next record,
         if there is nothing new in the stream.
+        If `None`, the function will return if there are no more records to read
         Defaults to datetime.timedelta(seconds=0.05).
 
     :yield:
@@ -554,12 +590,16 @@ def slice_stream(
 
         # Take a nap if no or only one record was returned
         # one record
-        if len(records) <= 1:
-            time.sleep(sleep.total_seconds())
+        if len(records) < 1:
+            if wait is None:
+                break
+
+            time.sleep(wait.total_seconds())
             continue
 
-        for id, record in records[1:]:
-            start_id = safe_str(id)
+        for id, record in records:
+            start_id = tick_stream_id(id)
+
             if start_id > end_id:
                 break
 
