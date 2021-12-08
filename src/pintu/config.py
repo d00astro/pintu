@@ -69,6 +69,21 @@ argparser.add_argument(
     help="Event handler JSON file.",
 )
 
+argparser.add_argument(
+    "--pre_event_recording_duration",
+    env_var="PRE_EVENT_RECORDING_DURATION",
+    default=pintu.default.PRE_EVENT_RECORDING_DURATION,
+    type=datetime.timedelta,
+    help="Record this amount of time prior to events.",
+)
+argparser.add_argument(
+    "--post_event_recording_duration",
+    env_var="POST_EVENT_RECORDING_DURATION",
+    default=pintu.default.POST_EVENT_RECORDING_DURATION,
+    type=datetime.timedelta,
+    help="Record this amount of time after events.",
+)
+
 
 # # Redis
 argparser.add_argument(
@@ -329,6 +344,8 @@ class Configuration(pydantic.BaseModel):
     log_config_file: pathlib.Path
     recordings_dir: pathlib.Path
     events_file: pathlib.Path
+    pre_event_recording_duration: datetime.timedelta
+    post_event_recording_duration: datetime.timedelta
 
     redis_host: str
     redis_port: int

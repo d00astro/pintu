@@ -38,6 +38,7 @@ import redis
 
 import pintu.default
 import pintu.imaging
+import pintu.record
 import pintu.util
 
 log = logging.getLogger(__name__)
@@ -425,9 +426,21 @@ def analyze_stream(
             pipe.expire(detection_key, ttl)
             pipe.rpush(detection_base_key, detection_key)
 
+            # # Temporary Hack
+            # TODO: Replace with proper Event logic:
+            if detection["class"] in ["person"]:
+                pintu.record.record(
+                    bus,
+                    camera_name,
+                    start_time=frame.timestamp
+                    - pintu.config.pre_event_recording_duration,
+                    end_time=frame.timestamp
+                    + pintu.config.post_event_recording_duration,
+                )
+
         detections_data["count"] = len(detections)
         pipe.hset(frame_key, mapping=detections_data)
-        detections_data.update(record)
+        detections_data.update(record)  # type: ignore
         pipe.expire(detection_base_key, ttl)
         pipe.expire(frame_key, ttl)
         pipe.xadd(

@@ -58,6 +58,9 @@ RECORDINGS_FILENAME_FORMAT = COMPACT_TIMESTAMP_FORMAT + ".webm"
 STREAM_ID_TIMESTAMP_FORMAT = "%Y%m%d%H%M%S-%f"
 """Format of stream id timestamps"""
 
+PRE_EVENT_RECORDING_DURATION = datetime.timedelta(seconds=10)
+POST_EVENT_RECORDING_DURATION = datetime.timedelta(seconds=10)
+
 # Redis
 REDIS_HOST = "localhost"
 """Hostname / IP of Redis"""

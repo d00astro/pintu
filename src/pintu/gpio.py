@@ -27,15 +27,37 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 """
 import collections
 import enum
+import functools
 import logging
 import signal
 from typing import Callable
 
+import redis
 import RPi.GPIO as GPIO
 
 import pintu
+import pintu.record
+import pintu.util
 
 log = logging.getLogger(__name__)
+
+
+@functools.lru_cache
+def redis_connection():
+    return redis.Redis(
+        host=pintu.config.redis_host, port=pintu.config.redis_port
+    )
+
+
+# TODO: Replace with proper Event logic:
+def record_it():
+    now = pintu.util.now()
+    pintu.record.record(
+        redis_connection(),
+        pintu.config.camera_name,
+        start_time=now - pintu.config.pre_event_recording_duration,
+        end_time=now + pintu.config.post_event_recording_duration,
+    )
 
 
 class PinState(int, enum.Enum):
@@ -74,6 +96,9 @@ def on_doorbell_event(state: bool):
         return
     log.info("Dong! Someone released the door-bell!")
 
+    # TODO: Replace with proper Event logic:
+    record_it()
+
 
 def on_door_opened_event(state: bool):
     """
@@ -87,6 +112,9 @@ def on_door_opened_event(state: bool):
         return
     log.info("Someone closed the door!")
 
+    # TODO: Replace with proper Event logic:
+    record_it()
+
 
 def on_unlocked_event(state: bool):
     """
@@ -99,6 +127,9 @@ def on_unlocked_event(state: bool):
         log.info("Clink! Someone unlocked the door!")
         return
     log.info("Someone locked the door!")
+
+    # TODO: Replace with proper Event logic:
+    record_it()
 
 
 PinEvent = collections.namedtuple(
