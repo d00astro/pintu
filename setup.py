@@ -59,8 +59,9 @@ dependencies = [
     "ncnn",
 ]
 
-if pi_model:
-    dependencies.append("RPi.GPIO")
+# if pi_model:
+#    dependencies.append("RPi.GPIO")
+
 
 all_extras: List[str] = []
 
