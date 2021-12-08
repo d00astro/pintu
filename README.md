@@ -34,6 +34,9 @@ You also need:
 #### Python 3.7+
 This should be default in more recent versions of for example Raspberry Pi OS.
 
+### Redis server
+... TBD .. 
+
 ## Install
 
 ```
@@ -41,6 +44,41 @@ git clone https://github.com/d00astro/pintu.git
 cd pintu
 pip install .
 ```
-
+You may want to export an environment variable `PINTU_INSTALL_DIR` pointing to the repo directory.
+E.g. by adding the following line to `/home/pi/.bashrc`:
+```console
+export PINTU_INSTALL_DIR=/home/pi/pintu
+```
+(Assuming you cloned pintu into the home directory of the `pi` user.)
 ## Run
-TBD
+Pintu runs as 5 different processes in parallel:
+
+1. Redis server - Acts as a communication bus between the other services
+
+    ```
+    redis-server
+    ```
+
+2. Capture - captures the camera stream and publish it to Redis
+
+    ```
+    python3 src/pintu/capture.py [args]
+    ```
+
+3. Detector - Detects people and objects 
+
+    ```
+    python3 src/pintu/detect.py [args]
+    ```
+
+4. Recorder - Records video snippets on events 
+
+    ```
+    python3 src/pintu/record.py
+    ```
+
+5. API - allows for interaction and a super simple UI 
+
+    ```
+    python3 src/pintu/api.py
+    ```

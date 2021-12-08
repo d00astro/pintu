@@ -51,6 +51,7 @@ dependencies = [
     "fastapi",
     "gunicorn",
     "numpy",
+    "packaging",
     "python-ulid",
     "redis",
     "requests",
