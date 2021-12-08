@@ -582,6 +582,9 @@ class Frame(Image):
         metadata["timestamp"] = self.timestamp.isoformat()
         return metadata
 
+    def __str__(self) -> str:
+        return f"{self.kind}:{self.width}x{self.height}@{self.timestamp}"
+
 
 class ImageLayers:
     """

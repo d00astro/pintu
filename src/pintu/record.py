@@ -57,6 +57,8 @@ def _record_on_demand_loop(
     # min_interval: datetime.timedelta,
     detections: bool = False,
 ):
+
+    recordings_stream_key = f"/pintu/camera/{camera_name}/recording"
     stream_key = (
         f"/pintu/camera/{camera_name}/detection"
         if detections
@@ -108,9 +110,20 @@ def _record_on_demand_loop(
                 f"Recording camera '{camera_name}' from {start_timestamp.isoformat()} "
                 f"to file '{recording_file}'"
             )
+            bus.xadd(
+                recordings_stream_key,
+                fields={
+                    "camera": camera_name,
+                    "rec_state": 1,
+                    "start": start_timestamp.isoformat(),
+                    "end": end_timestamp.isoformat(),
+                    "file": str(recording_file),
+                },
+                id=pintu.util.stream_id(start_timestamp),
+            )
 
         rec_verb = "Scheduling"
-        while start_timestamp < end_timestamp:
+        while last_recorded_frame_timestamp < end_timestamp:
             log.info(
                 f"{rec_verb} recording of '{recording_file}' "
                 f"until {end_timestamp.isoformat()}"
@@ -121,7 +134,7 @@ def _record_on_demand_loop(
             for record in pintu.util.slice_stream(
                 bus,
                 stream_key=stream_key,
-                start_time=start_timestamp,
+                start_time=max(start_timestamp, last_recorded_frame_timestamp),
                 end_time=end_timestamp,
             ):
                 image_key = record["input"]
@@ -170,6 +183,17 @@ def _record_on_demand_loop(
 
         if video_writer:
             video_writer.release()
+            bus.xadd(
+                recordings_stream_key,
+                fields={
+                    "camera": camera_name,
+                    "rec_state": 0,
+                    "start": start_timestamp.isoformat(),
+                    "end": last_recorded_frame_timestamp.isoformat(),
+                    "file": str(recording_file),
+                },
+                id=pintu.util.stream_id(last_recorded_frame_timestamp),
+            )
 
 
 if __name__ == "__main__":
