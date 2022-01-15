@@ -6,6 +6,9 @@ Pintu is a "smart doorbell" with video capabilities, remote control and Chromeca
 ## Prerequisites
 
 ### Raspberry Pi OS 64 bit
+#### Download
+https://downloads.raspberrypi.org/raspios_lite_arm64/images/
+#### Install
 https://qengineering.eu/install-raspberry-64-os.html
 
 ### OpenCV:
