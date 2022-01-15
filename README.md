@@ -5,11 +5,37 @@ Pintu is a "smart doorbell" with video capabilities, remote control and Chromeca
 
 ## Prerequisites
 
-### Raspberry Pi OS 64 bit
-#### Download
+### 64 bit  Raspberry Pi OS 
+Pintu requires the 64 bit version of Raspberry Pi OS, and won't work properly on the official Raspberry Pi OS images, which are only 32 bit. 
+The Raspberry Pi OS 64-bit builds are still only in a beta stage and has a [number of other limitations and issues](https://github.com/raspberrypi/Raspberry-Pi-OS-64bit/issues), so you will not find these in the usual place on the official website.
+
+Instead, these builds are made available through the raspberry pi foundations downloads mirror. 
+
+#### Lite (headless, without desktop):
 https://downloads.raspberrypi.org/raspios_lite_arm64/images/
-#### Install
-https://qengineering.eu/install-raspberry-64-os.html
+
+#### Desktop
+https://downloads.raspberrypi.org/raspios_arm64/images/
+
+Download your preferred version, and flash it onto the RPi, and go through the setup as you normally would.
+
+To validate that you are running a 64 bit OS, you can run:
+```console
+uname -a | grep aarch64
+```
+And
+```console
+gcc -v 2>&1 >/dev/null | grep aarch64
+```
+If both commands printed out information, you are good to go.
+
+### Enable ZRAM
+Modified from tutorial from [Q-engineering](https://qengineering.eu/install-raspberry-64-os.html).
+
+...
+
+
+
 
 ### OpenCV:
 Install as per:
