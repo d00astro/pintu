@@ -29,12 +29,62 @@ gcc -v 2>&1 >/dev/null | grep aarch64
 ```
 If both commands printed out information, you are good to go.
 
-### Enable ZRAM
-Modified from tutorial from [Q-engineering](https://qengineering.eu/install-raspberry-64-os.html).
+### Disable Swapping & Enable ZRAM
+(Modified from tutorial from [Q-engineering](https://qengineering.eu/install-raspberry-64-os.html).)
 
-...
+The risk of flash disk failure increase with the volume of writes. For this reasin it is recmmended to turn of memory swapping to file, in favor of instead using zram, which compresses the swapped data but retains it in memory.
 
+```console
+sudo /etc/init.d/dphys-swapfile stop
+sudo apt-get remove --purge dphys-swapfile
+sudo wget -O /usr/bin/zram.sh https://raw.githubusercontent.com/novaspirit/rpi_zram/master/zram.sh
+sudo chmod +x /usr/bin/zram.sh
+```
+Answer 'yes', wen asked if you want to remove `dphys-swapfile`.
 
+With root privileges open `/etc/rc.local` with any editor, eg:
+```console
+sudo nano /etc/rc.local
+```
+
+Add the line `/usr/bin/zram.sh &` before `exit 0`, so the file looks like this:
+```sh
+!/bin/sh -e
+#
+# rc.local
+#
+# This script is executed at the end of each multiuser runlevel.
+# Make sure that the script will "exit 0" on success or any other
+# value on error.
+#
+# In order to enable or disable this script just change the execution
+# bits.
+#
+# By default this script does nothing.
+
+# Print the IP address
+_IP=$(hostname -I) || true
+if [ "$_IP" ]; then
+  printf "My IP address is %s\n" "$_IP"
+fi
+
+/usr/bin/zram.sh &
+
+exit 0
+```
+Save the modified file exit the text editor, and reboot your Raspberry Pi.
+
+After reboot, you can test that it worked by issuing:
+```console
+free -m
+```
+The output may look somehting like this
+```
+               total        used        free      shared  buff/cache   available
+Mem:            3743         277        3228          32         237        3367
+Swap:          14972           0       14972
+```
+The important thing is that the sum of `Mem` and `Swap` in the `total`-column is greater than 6000.
 
 
 ### OpenCV:
