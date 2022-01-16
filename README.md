@@ -37,17 +37,69 @@ The risk of flash disk failure increase with the volume of writes. For this reas
 ```console
 sudo /etc/init.d/dphys-swapfile stop
 sudo apt-get remove --purge dphys-swapfile
-sudo wget -O /usr/bin/zram.sh https://raw.githubusercontent.com/novaspirit/rpi_zram/master/zram.sh
-sudo chmod +x /usr/bin/zram.sh
 ```
 Answer 'yes', wen asked if you want to remove `dphys-swapfile`.
 
-With root privileges open `/etc/rc.local` with any editor, eg:
+With root privileges create a new file `/usr/bin/zram.sh`, eg:
+```console
+sudo nano /usr/bin/zram.sh
+```
+
+Paste in the following content. It is a script that set up the in-RAM swap-space using ZRAM.
+```bash
+#!/bin/bash
+
+export LANG=C
+
+cores=$(nproc --all)
+
+# disable zram
+core=0
+while [ $core -lt $cores ]; do
+    if [[ -b /dev/zram$core ]]; then
+        swapoff /dev/zram$core
+    fi
+    let core=core+1
+done
+if [[ -n $(lsmod | grep zram) ]]; then
+    rmmod zram
+fi
+if [[ $1 == stop ]]; then
+    exit 0
+fi
+
+# disable all
+swapoff -a
+
+# enable zram
+modprobe zram num_devices=$cores
+
+echo lz4 > /sys/block/zram0/comp_algorithm
+
+totalmem=$(free | grep -e "^Mem:" | awk '{print $2}')
+mem=$(( ($totalmem / $cores) * 1024 * 2 ))
+
+core=0
+while [ $core -lt $cores ]; do
+    echo $mem > /sys/block/zram$core/disksize
+    mkswap /dev/zram$core
+    swapon -p 5 /dev/zram$core
+    let core=core+1
+done
+```
+
+Save the file (make sure it is at `/usr/bin/zram.sh`), exit the text editor and give the file execution permissions:
+```
+sudo chmod +x /usr/bin/zram.sh
+```
+
+
+To make sure that the script runs on startup, using any text editor modify `/etc/rc.local` with root permissions, eg:
 ```console
 sudo nano /etc/rc.local
 ```
 
-Add the line `/usr/bin/zram.sh &` before `exit 0`, so the file looks like this:
+Include a call to the newly created script by adding the line `/usr/bin/zram.sh &` before `exit 0` at the end of the file, so the file looks like this:
 ```sh
 !/bin/sh -e
 #
@@ -82,14 +134,73 @@ The output may look somehting like this
 ```
                total        used        free      shared  buff/cache   available
 Mem:            3743         277        3228          32         237        3367
-Swap:          14972           0       14972
+Swap:           7486           0       14972
 ```
 The important thing is that the sum of `Mem` and `Swap` in the `total`-column is greater than 6000.
 
+### Updating EEPROM
+This is not strictly neccesary but, using the latest EEPROMs may increase CPU performance and/or lower its heat profile.
+The update process is different for standalone "Model B" boards, and the "Compute Module". Refer to the respective sub-section below for instructions.
+
+#### Model B (i.e. Booting from SD-card)
+If you are using a Raspberry Pi 4 Model B, i.e. a "normal" standalone board, simply run the following commands to update the EEPROM.
+```console
+sudo rpi-eeprom-update
+sudo rpi-eeprom-update -a
+sudo reboot
+```
+
+#### Compute Module (i.e. Booting from on-board eMMC)
+If you are using a Raspberry Pi 4 Compute model, i.e. a "CM4", the update process is a little bit more involved.
+Note that it is here assumed that you are using Linux and used [usbboot](https://github.com/raspberrypi/usbboot) when flashing the OS to the CM4.
+
+The process **should** be the same for Windows but the commands may be different 🤷. 
+
+1. Identify the latest EEPROM `bin` file [here](https://github.com/raspberrypi/rpi-eeprom/tree/master/firmware/stable)
+
+    At the moment of writing, `pieeprom-2021-12-02.bin` was the latest.
+
+2. Download the `bin` file into the `usboot/recovery` directory **of to the computer used to flash the CM4** (not the CM4 itself), e.g:
+    ```console
+    cd ~/usboot/recovery
+    rm -f pieeprom.original.bin
+    curl -L -o pieeprom.original.bin https://github.com/raspberrypi/rpi-eeprom/raw/master/firmware/stable/pieeprom-pieeprom-2021-12-02.bin
+    ```
+    Naturally modify the `usbboot` directory and the eeprom `bin` file name to correspond to your situation.
+
+3. Make sure your CM4 carrier board's “disable MMC boot” jumper (`J2`, on the official IO-board) is bridged with the lower pin to disable eMMC boot.
+
+4. Connect the CM4 to your host computer's USB, as when flashing the OS to eMMC.
+
+5. Flash the EEPROM to the CM4, by issuing:
+
+    ```console
+    cd ~/usbboot
+    sudo ./rpiboot -d recovery
+    ```
+6. Disconnect the CM4, power it off and un-bridge the eMMC boot jumper.
+
+You can verify that you have the latest EEPROM by running:
+```console
+sudo CM4_ENABLE_RPI_EEPROM_UPDATE=1 rpi-eeprom-update
+```
+It should say `BOOTLOADER: up to date` and information of the loaded and latest versions, e.g:
+```console
+BOOTLOADER: up to date
+   CURRENT: Thu  2 Dec 11:08:03 UTC 2021 (1638443283)
+    LATEST: Thu 29 Apr 16:11:25 UTC 2021 (1619712685)
+   RELEASE: default (/lib/firmware/raspberrypi/bootloader/default)
+            Use raspi-config to change the release.
+
+  VL805_FW: Using bootloader EEPROM
+     VL805: up to date
+   CURRENT: 00013705
+    LATEST: 00013705
+```
 
 ### OpenCV:
-Install as per:
-https://qengineering.eu/install-opencv-4.4-on-raspberry-64-os.html
+(Modified from tutorial from [Q-engineering](https://qengineering.eu/install-opencv-4.4-on-raspberry-64-os.html).)
+
 
 ### Ncnn 
 Install as per:
