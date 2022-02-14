@@ -431,7 +431,11 @@ async def shutdown_event():
     pintu.gpio.graceful_shutdown()
 
 
-if __name__ == "__main__":
+def main():
     log.info(f"Starting API on port {pintu.config.api_port}")
     uvicorn.run("api:api", host="0.0.0.0", port=pintu.config.api_port)
     log.info("API exited ")
+
+
+if __name__ == "__main__":
+    main()

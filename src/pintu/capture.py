@@ -194,7 +194,7 @@ def capture(
             )
 
 
-if __name__ == "__main__":
+def main():
     import pintu
 
     bus = redis.Redis(
@@ -211,3 +211,7 @@ if __name__ == "__main__":
         buffer_interval=pintu.config.buffer_interval,
         diff_threshold=pintu.config.diff_treshold,
     )
+
+
+if __name__ == "__main__":
+    main()

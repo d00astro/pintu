@@ -94,7 +94,12 @@ setuptools.setup(
         "all": all_extras,
     },
     entry_points={
-        "console_scripts": ["redgrease=redgrease.cli:main [cli]"],
+        "console_scripts": [
+            "pintu-api=pintu.api:main",
+            "pintu-capture=pintu.capture:main",
+            "pintu-record=pintu.record:main",
+            "pintu-detect=pintu.detection:main",
+        ],
     },
     setup_requires=[],
     python_requires=">=3.6",

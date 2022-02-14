@@ -237,8 +237,7 @@ def _record_on_demand_loop(
             )
 
 
-if __name__ == "__main__":
-
+def main():
     import pintu
 
     bus = redis.Redis(
@@ -246,3 +245,7 @@ if __name__ == "__main__":
     )
 
     _record_on_demand_loop(bus=bus, camera_name=pintu.config.camera_name)
+
+
+if __name__ == "__main__":
+    main()

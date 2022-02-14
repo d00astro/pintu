@@ -464,9 +464,7 @@ def analyze_stream(
             )
 
 
-if __name__ == "__main__":
-    import pathlib
-
+def main():
     import pintu
     import pintu.detection
 
@@ -487,3 +485,7 @@ if __name__ == "__main__":
         inference_image=pintu.config.inference_image,
         retention=pintu.config.retention,
     )
+
+
+if __name__ == "__main__":
+    main()

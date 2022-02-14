@@ -1,12 +1,16 @@
-#/bin/bash
+#!/bin/bash
 
-
-OPENCV_VERSION=4.4.0
+OPENCV_VERSION=4.5.5
 
 # Check if OpenCV is already installed
-if `python3 -c "import cv2" 2> /dev/null` ; then 
-    echo "OpenCV already installed!"
-    exit 0
+INSTALLED_OPENCV_VERSION=$( python3 -c "import cv2 ; print(cv2.__version__)"  2> /dev/null )
+if [[ ${INSTALLED_OPENCV_VERSION} ]] ; then
+    echo "OpenCV ${INSTALLED_OPENCV_VERSION} already installed!"
+
+    if [[ ${INSTALLED_OPENCV_VERSION} != ${OPENCV_VERSION} ]] ; then
+        echo "Uninstall OpenCV ${INSTALLED_OPENCV_VERSION} and re-run if you want to install version ${OPENCV_VERSION}"
+    fi
+    # exit 0
 fi
 
 # Check for ARM 64 architecture
@@ -39,17 +43,20 @@ sudo apt-get install -y libv4l-dev v4l-utils &&
 sudo apt-get install -y libopenblas-dev libatlas-base-dev libblas-dev &&
 sudo apt-get install -y liblapack-dev gfortran libhdf5-dev &&
 sudo apt-get install -y libprotobuf-dev libgoogle-glog-dev libgflags-dev &&
-sudo apt-get install -y protobuf-compiler &&
+sudo apt-get install -y protobuf-compiler || 
+( echo "Unable to install dependencies for OpenCV " && exit 1 )
 
 # Download OpenCV
 cd ~
 if [[ -e opencv-${OPENCV_VERSION} ]] ; then
     wget -O opencv.zip https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.zip &&
-    unzip opencv.zip &&
+    unzip opencv.zip || 
+    ( echo "Unable to download and extract OpenCV version ${OPENCV_VERSION}" && exit 1)
 fi
 if [[ -e opencv_contrib-${OPENCV_VERSION} ]]; then
     wget -O opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/${OPENCV_VERSION}.zip &&
-    unzip opencv_contrib.zip &&
+    unzip opencv_contrib.zip ||
+    ( echo "Unable to download and extract OpenCV contrib packages for version ${OPENCV_VERSION}" && exit 1)
 fi 
 
 # Build OpenCV
@@ -85,9 +92,10 @@ sudo ldconfig &&
 make clean &&
 sudo apt-get update &&
 # Test it 
-python -c "import cv2" &&
+python -c "import cv2" ||
+( echo "Unable to build OpenCV version ${OPENCV_VERSION}" && exit 1)
 
 ## Remove
 cd ~ &&
-sudo rm -rf ~/opencv-${OPENCV_VERSION}
+sudo rm -rf ~/opencv-${OPENCV_VERSION} 
 sudo rm -rf ~/opencv_contrib-${OPENCV_VERSION}
